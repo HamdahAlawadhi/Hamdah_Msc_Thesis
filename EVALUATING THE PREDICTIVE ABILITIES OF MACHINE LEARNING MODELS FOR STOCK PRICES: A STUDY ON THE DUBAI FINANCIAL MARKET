@@ -1,0 +1,660 @@
+#SVM 
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Select data for training (2008 to 2020) and testing (2021 to 2023)
+train_data = df[df['Date'].dt.year < 2024]  # Extend training data until 2023
+test_data = df[df['Date'].dt.year == 2024]  # Predict prices for 2024
+
+X_train, y_train = train_data[['Price', 'High', 'Low']], train_data['Open']
+X_test, y_test = test_data[['Price', 'High', 'Low']], test_data['Open']
+
+# Step 3: Train the Support Vector Machine (SVM) model
+model = SVR(kernel='linear')  # You can try different kernels, e.g., 'linear', 'rbf', etc.
+model.fit(X_train, y_train)
+
+# Step 4: Make predictions and calculate RMSE
+y_pred_SVM = model.predict(X_test)
+y_pred_SVM
+
+
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print(f'Root Mean Squared Error (RMSE): {rmse}')
+
+
+# Step 5: Visualize the results with a line plot
+plt.plot(test_data['Date'], y_test, label='Actual Prices')
+plt.plot(test_data['Date'], y_pred_SVM, label='Predicted Prices',color='red')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual Prices for 2024 (SVM)')
+plt.legend()
+plt.show()
+
+#LSTM 
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Step 2: Split the data into training and testing sets
+train_data = df[df['Date'].dt.year < 2024]  # Extend training data until 2023
+test_data = df[df['Date'].dt.year == 2024]  # Predict prices for 2024
+
+X_train, X_test = train_data[['Price', 'High', 'Low']], test_data[['Price', 'High', 'Low']]
+y_train, y_test = train_data['Open'], test_data['Open']
+
+# Step 3: Normalize the data (LSTMs are sensitive to the scale of input features)
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert the data to sequences for LSTM
+def create_sequences(data, seq_length):
+    sequences = []
+    for i in range(len(data) - seq_length):
+        seq = data[i:i + seq_length]
+        sequences.append(seq)
+    return np.array(sequences)
+
+seq_length = 10  # You can adjust the sequence length
+X_train_seq = create_sequences(X_train_scaled, seq_length)
+X_test_seq = create_sequences(X_test_scaled, seq_length)
+y_train_seq = y_train.values[seq_length:]
+y_test_seq = y_test.values[seq_length:]
+
+# Step 4: Build and train the LSTM model
+model = Sequential()
+model.add(LSTM(units=50, activation='relu', input_shape=(X_train_seq.shape[1], X_train_seq.shape[2])))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train_seq, y_train_seq, epochs=50, batch_size=32, verbose=0)
+
+# Step 5: Make predictions and calculate RMSE
+y_pred_lstm = model.predict(X_test_seq).flatten()  # Assign predictions to a new variable (y_pred_lstm)
+y_pred_lstm
+
+
+rmse_lstm = mean_squared_error(y_test_seq, y_pred_lstm, squared=False)
+print(f'Root Mean Squared Error (RMSE) for LSTM: {rmse_lstm}')
+
+# Step 5: Visualize the results with a line plot
+# Step 5: Visualize the results with a line plot
+plt.plot(test_data['Date'].values[:len(y_pred_lstm)], y_pred_lstm, label='Predicted Prices', color='red')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Predicted Prices for 2024 (LSTM)')
+plt.legend()
+plt.show()
+
+# Step 5: Visualize the results with a line plot
+#plt.plot(test_data['Date'].values[:len(y_pred_lstm)], y_pred_lstm, label='Predicted Prices (LSTM)', color='red')
+plt.plot(test_data['Date'].values[:len(y_test_seq)], y_test_seq, label='Actual Prices')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual Prices for 2024 (LSTM)')
+plt.legend()
+plt.show()
+
+#RNN 
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import SimpleRNN, Dense
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Step 2: Split the data into training and testing sets
+train_data = df[df['Date'].dt.year < 2024]  # Extend training data until 2023
+test_data = df[df['Date'].dt.year == 2024]  # Predict prices for 2024
+
+X_train, X_test = train_data[['Price', 'High', 'Low']], test_data[['Price', 'High', 'Low']]
+y_train, y_test = train_data['Open'], test_data['Open']
+
+# Step 3: Normalize the data (RNNs are sensitive to the scale of input features)
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert the data to sequences for RNN
+def create_sequences(data, seq_length):
+    sequences = []
+    for i in range(len(data) - seq_length):
+        seq = data[i:i + seq_length]
+        sequences.append(seq)
+    return np.array(sequences)
+
+seq_length = 10  # You can adjust the sequence length
+X_train_seq = create_sequences(X_train_scaled, seq_length)
+X_test_seq = create_sequences(X_test_scaled, seq_length)
+y_train_seq = y_train.values[seq_length:]
+y_test_seq = y_test.values[seq_length:]
+
+# Step 4: Build and train the RNN model
+model = Sequential()
+model.add(SimpleRNN(units=50, activation='relu', input_shape=(X_train_seq.shape[1], X_train_seq.shape[2])))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train_seq, y_train_seq, epochs=50, batch_size=32, verbose=0)
+
+# Step 5: Make predictions and calculate RMSE
+y_pred_rnn = model.predict(X_test_seq).flatten()  # Assign predictions to a new variable (y_pred_rnn)
+
+rmse_rnn = mean_squared_error(y_test_seq, y_pred_rnn, squared=False)
+print(f'Root Mean Squared Error (RMSE) for RNN: {rmse_rnn}')
+
+# Step 6: Visualize the results with a line plot
+plt.plot(test_data['Date'].values[:len(y_pred_rnn)], y_pred_rnn, label='Predicted Prices', color='red')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Predicted Prices for 2024 (RNN)')
+plt.legend()
+plt.show()
+
+#plt.plot(test_data['Date'].values[:len(y_pred_rnn)], y_pred_rnn, label='Predicted Prices (RNN)', color='red')
+plt.plot(test_data['Date'].values[:len(y_test_seq)], y_test_seq, label='Actual Prices')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual Prices for 2024 (RNN)')
+plt.legend()
+plt.show()
+
+#RF
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Step 2: Split the data into training and testing sets
+train_data = df[df['Date'].dt.year < 2024]  # Extend training data until 2023
+test_data = df[df['Date'].dt.year == 2024]  # Predict prices for 2024
+
+X_train, X_test = train_data[['Price', 'High', 'Low']], test_data[['Price', 'High', 'Low']]
+y_train, y_test = train_data['Open'], test_data['Open']
+
+# Step 3: Train the Random Forest model
+model = RandomForestRegressor(n_estimators=100, random_state=42)  # You can adjust the number of trees (n_estimators)
+model.fit(X_train, y_train)
+
+# Step 4: Make predictions and calculate RMSE
+y_pred_rf = model.predict(X_test)  # Assign predictions to a new variable (y_pred_rf)
+y_pred_rf
+
+
+rmse_rf = mean_squared_error(y_test, y_pred_rf, squared=False)
+print(f'Root Mean Squared Error (RMSE) for Random Forest: {rmse_rf}')
+
+
+# Step 6: Visualize the results with a line plot
+plt.plot(test_data['Date'].values[:len(y_pred_rf)], y_pred_rf, label='Predicted Prices', color='red')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Predicted Prices for 2024 (RNN)')
+plt.legend()
+plt.show()
+
+# Step 6: Visualize the results with a line plot
+#plt.plot(test_data['Date'].values[:len(y_pred_rf)], y_pred_rf, label='Predicted Prices (RF)', color='red')
+plt.plot(test_data['Date'].values[:len(y_test)], y_test, label='Actual Prices')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual Prices for 2024 (Random Forest)')
+plt.legend()
+plt.show()
+
+#Evaluation RF with RNN 
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+from scipy.stats import ttest_rel
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+import numpy as np
+
+# Assuming you have already read and preprocessed the data (df)
+# Make sure the 'Date' column is in datetime format and set as the index
+
+# Extract year from the Date column
+df['Year'] = df['Date'].dt.year
+
+# Select features and target variable
+X = df[['Open', 'High', 'Low']].loc[df['Year'] < 2023].values
+y = df['Price'].loc[df['Year'] < 2023].values
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train Random Forest model
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+
+# Train RNN model
+X_train_rnn = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
+X_test_rnn = X_test.reshape((X_test.shape[0], 1, X_test.shape[1]))
+
+rnn_model = Sequential()
+rnn_model.add(LSTM(50, input_shape=(X_train_rnn.shape[1], X_train_rnn.shape[2])))
+rnn_model.add(Dense(1))
+rnn_model.compile(loss='mse', optimizer='adam')
+rnn_model.fit(X_train_rnn, y_train, epochs=50, batch_size=32, verbose=0)
+
+# Make predictions with both models
+y_pred_rf = rf_model.predict(X_test)
+y_pred_rnn = rnn_model.predict(X_test_rnn).flatten()
+
+# Calculate mean squared error
+mse_rf = mean_squared_error(y_test, y_pred_rf)
+mse_rnn = mean_squared_error(y_test, y_pred_rnn)
+
+# Print mean squared error for each model
+print(f'MSE for Random Forest: {mse_rf}')
+print(f'MSE for RNN: {mse_rnn}')
+
+# Calculate the differences in mean squared errors
+diff_mse = mse_rf - mse_rnn
+
+# Perform paired t-test on the differences
+t_stat, p_value = ttest_rel(y_test, y_pred_rf - y_pred_rnn)
+
+print(f'Test Statistic: {t_stat}')
+print(f'P-value: {p_value}')
+
+# Check if the difference in performance is statistically significant
+alpha = 0.05
+if p_value < alpha:
+    print('The difference in performance is statistically significant.')
+else:
+    print('The difference in performance is not statistically significant.')
+
+#Evaluation SVM with LSTM 
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVR
+from scipy.stats import ttest_rel
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Define the function to create sequences for LSTM
+def create_sequences(data, seq_length):
+    sequences = []
+    for i in range(len(data) - seq_length):
+        seq = data[i:i + seq_length]
+        sequences.append(seq)
+    return np.array(sequences)
+
+# Split the data into training and testing sets for LSTM
+train_data_lstm = df[df['Date'].dt.year < 2021]
+test_data_lstm = df[df['Date'].dt.year >= 2021]
+
+X_train_lstm, X_test_lstm = train_data_lstm[['Price', 'High', 'Low']], test_data_lstm[['Price', 'High', 'Low']]
+y_train_lstm, y_test_lstm = train_data_lstm['Open'], test_data_lstm['Open']
+
+# Normalize the data for LSTM
+scaler_lstm = MinMaxScaler(feature_range=(0, 1))
+X_train_scaled_lstm = scaler_lstm.fit_transform(X_train_lstm)
+X_test_scaled_lstm = scaler_lstm.transform(X_test_lstm)
+
+# Convert the data to sequences for LSTM
+seq_length = 10
+X_train_seq_lstm = create_sequences(X_train_scaled_lstm, seq_length)
+X_test_seq_lstm = create_sequences(X_test_scaled_lstm, seq_length)
+y_train_seq_lstm = y_train_lstm.values[seq_length:]
+y_test_seq_lstm = y_test_lstm.values[seq_length:]
+
+# Build and train the LSTM model
+model_lstm = Sequential()
+model_lstm.add(LSTM(units=50, activation='relu', input_shape=(X_train_seq_lstm.shape[1], X_train_seq_lstm.shape[2])))
+model_lstm.add(Dense(units=1))
+model_lstm.compile(optimizer='adam', loss='mean_squared_error')
+model_lstm.fit(X_train_seq_lstm, y_train_seq_lstm, epochs=50, batch_size=32, verbose=0)
+
+# Make predictions with LSTM
+y_pred_lstm = model_lstm.predict(X_test_seq_lstm).flatten()
+
+# Select data for training and testing for SVM
+train_data_svm = df[(df['Date'].dt.year >= 2008) & (df['Date'].dt.year <= 2020)]
+test_data_svm = df[(df['Date'].dt.year >= 2021) & (df['Date'].dt.year <= 2023)]
+
+X_train_svm, y_train_svm = train_data_svm[['Price', 'High', 'Low']], train_data_svm['Open']
+X_test_svm, y_test_svm = test_data_svm[['Price', 'High', 'Low']], test_data_svm['Open']
+
+# Train the Support Vector Machine (SVM) model
+model_svm = SVR(kernel='linear')
+model_svm.fit(X_train_svm, y_train_svm)
+
+# Make predictions with SVM
+y_pred_svm = model_svm.predict(X_test_svm)
+
+# Align the lengths of prediction arrays
+min_length = min(len(y_pred_lstm), len(y_pred_svm))
+y_pred_lstm_aligned = y_pred_lstm[:min_length]
+y_pred_svm_aligned = y_pred_svm[:min_length]
+
+# Perform paired t-test on the aligned prediction arrays
+t_stat, p_value = ttest_rel(y_test_seq_lstm[:min_length], y_pred_lstm_aligned - y_pred_svm_aligned)
+
+print(f'Test Statistic: {t_stat}')
+print(f'P-value: {p_value}')
+
+# Check if the difference in performance is statistically significant
+alpha = 0.05
+if p_value < alpha:
+    print('The difference in performance is statistically significant.')
+else:
+    print('The difference in performance is not statistically significant.')
+
+# view of full dataset 
+import matplotlib.pyplot as plt
+
+# Assuming you have already defined and processed X and y as mentioned in your original code
+
+# Create a line plot
+plt.figure(figsize=(10, 6))
+plt.plot(df['Date'], y, label='Price', color='blue', linestyle='-')
+
+# Set labels and title
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.title('changes in prices over time ')
+
+# Show legend
+plt.legend()
+
+# Display the plot
+plt.show()
+
+#SVM 
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Select data for training (2008 to 2020) and testing (2021 to 2023)
+train_data = df[(df['Date'].dt.year >= 2008) & (df['Date'].dt.year <= 2020)]
+test_data = df[(df['Date'].dt.year >= 2021) & (df['Date'].dt.year <= 2023)]
+
+X_train, y_train = train_data[['Price', 'High', 'Low']], train_data['Open']
+X_test, y_test = test_data[['Price', 'High', 'Low']], test_data['Open']
+
+# Step 3: Train the Support Vector Machine (SVM) model
+model = SVR(kernel='linear')  # You can try different kernels, e.g., 'linear', 'rbf', etc.
+model.fit(X_train, y_train)
+
+# Step 4: Make predictions and calculate RMSE
+y_pred = model.predict(X_test)
+y_pred 
+
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print(f'Root Mean Squared Error (RMSE): {rmse}')
+
+# Step 5: Visualize the results with a line plot
+plt.plot(test_data['Date'], y_test, label='Actual Prices')
+plt.plot(test_data['Date'], y_pred, label='Predicted Prices')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual vs. Predicted Prices (SVM)')
+plt.legend()
+plt.show()
+
+#LSTM 
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Step 2: Split the data into training and testing sets
+train_data = df[df['Date'].dt.year < 2021]  # Updated training period to 2008-2020
+test_data = df[df['Date'].dt.year >= 2021]  # Updated testing period to 2021-2023
+
+X_train, X_test = train_data[['Price', 'High', 'Low']], test_data[['Price', 'High', 'Low']]
+y_train, y_test = train_data['Open'], test_data['Open']
+
+# Step 3: Normalize the data (LSTMs are sensitive to the scale of input features)
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert the data to sequences for LSTM
+def create_sequences(data, seq_length):
+    sequences = []
+    for i in range(len(data) - seq_length):
+        seq = data[i:i + seq_length]
+        sequences.append(seq)
+    return np.array(sequences)
+
+seq_length = 10  # You can adjust the sequence length
+X_train_seq = create_sequences(X_train_scaled, seq_length)
+X_test_seq = create_sequences(X_test_scaled, seq_length)
+y_train_seq = y_train.values[seq_length:]
+y_test_seq = y_test.values[seq_length:]
+
+# Step 4: Build and train the LSTM model
+model = Sequential()
+model.add(LSTM(units=50, activation='relu', input_shape=(X_train_seq.shape[1], X_train_seq.shape[2])))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train_seq, y_train_seq, epochs=50, batch_size=32, verbose=0)
+
+# Step 5: Make predictions and calculate RMSE
+y_pred_lstm = model.predict(X_test_seq).flatten()  # Assign predictions to a new variable (y_pred_lstm)
+y_pred_lstm
+
+# Step 6: Visualize the results with a line plot
+plt.plot(test_data['Date'].iloc[seq_length:], y_test_seq, label='Actual Prices')
+plt.plot(test_data['Date'].iloc[seq_length:], y_pred_lstm, label='Predicted Prices (LSTM)')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual vs. Predicted Prices (LSTM)')
+plt.legend()
+plt.show()
+
+#RNN 
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Step 2: Split the data into training and testing sets
+train_data = df[df['Date'].dt.year < 2021]  # Updated training period to 2008-2020
+test_data = df[df['Date'].dt.year >= 2021]  # Updated testing period to 2021-2023
+
+X_train, X_test = train_data[['Price', 'High', 'Low']], test_data[['Price', 'High', 'Low']]
+y_train, y_test = train_data['Open'], test_data['Open']
+
+# Step 3: Normalize the data (LSTMs are sensitive to the scale of input features)
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert the data to sequences for LSTM
+def create_sequences(data, seq_length):
+    sequences = []
+    for i in range(len(data) - seq_length):
+        seq = data[i:i + seq_length]
+        sequences.append(seq)
+    return np.array(sequences)
+
+seq_length = 10  # You can adjust the sequence length
+X_train_seq = create_sequences(X_train_scaled, seq_length)
+X_test_seq = create_sequences(X_test_scaled, seq_length)
+y_train_seq = y_train.values[seq_length:]
+y_test_seq = y_test.values[seq_length:]
+
+# Step 4: Build and train the LSTM model
+model = Sequential()
+model.add(LSTM(units=50, activation='relu', input_shape=(X_train_seq.shape[1], X_train_seq.shape[2])))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train_seq, y_train_seq, epochs=50, batch_size=32, verbose=0)
+
+# Step 5: Make predictions and calculate RMSE
+y_pred_lstm = model.predict(X_test_seq).flatten()  # Assign predictions to a new variable (y_pred_lstm)
+y_pred_lstm
+
+rmse_lstm = mean_squared_error(y_test_seq, y_pred_lstm, squared=False)
+print(f'Root Mean Squared Error (RMSE) for LSTM: {rmse_lstm}')
+
+# Step 6: Visualize the results with a line plot
+plt.plot(test_data['Date'].iloc[seq_length:], y_test_seq, label='Actual Prices')
+plt.plot(test_data['Date'].iloc[seq_length:], y_pred_lstm, label='Predicted Prices (LSTM)')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual vs. Predicted Prices (LSTM)')
+plt.legend()
+plt.show()
+
+#RF
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (X and y)
+
+# Step 2: Split the data into training and testing sets
+train_data = df[df['Date'].dt.year < 2021]  # Updated training period to 2008-2020
+test_data = df[df['Date'].dt.year >= 2021]  # Updated testing period to 2021-2023
+
+X_train, X_test = train_data[['Price', 'High', 'Low']], test_data[['Price', 'High', 'Low']]
+y_train, y_test = train_data['Open'], test_data['Open']
+
+# Step 3: Train the Random Forest model
+model = RandomForestRegressor(n_estimators=100, random_state=42)  # You can adjust the number of trees (n_estimators)
+model.fit(X_train, y_train)
+
+# Step 4: Make predictions and calculate RMSE
+y_pred_rf = model.predict(X_test)  # Assign predictions to a new variable (y_pred_rf)
+y_pred_rf
+
+rmse_rf = mean_squared_error(y_test, y_pred_rf, squared=False)
+print(f'Root Mean Squared Error (RMSE) for Random Forest: {rmse_rf}')
+
+# Step 5: Visualize the results with a line plot
+plt.plot(test_data['Date'], y_test, label='Actual Prices')
+plt.plot(test_data['Date'], y_pred_rf, label='Predicted Prices (Random Forest)')
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual vs. Predicted Prices (Random Forest)')
+plt.legend()
+plt.show()
+
+#view of dataset 2008-2020
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (df)
+
+# Filter data from 2008 to 2021
+filtered_data = df[(df['Date'].dt.year >= 2008) & (df['Date'].dt.year <= 2020)]
+
+# Plot the actual prices over time
+plt.plot(filtered_data['Date'], filtered_data['Price'])
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Actual Prices from 2008 to 2020')
+plt.show()
+
+
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (df)
+
+# Step 1: Read and preprocess the data
+df['Date'] = pd.to_datetime(df['Date'])
+df = df.sort_values(by='Date')
+
+# Check if there is enough data for plotting
+if len(df) < 2:
+    raise ValueError("Insufficient data for plotting. Please ensure there is enough data.")
+
+# Plot line graphs for 'Open', 'High', and 'Low' values
+plt.figure(figsize=(12, 6))
+plt.plot(df['Date'], df['Open'], label='Open')
+plt.plot(df['Date'], df['High'], label='High')
+plt.plot(df['Date'], df['Low'], label='Low')
+
+plt.xlabel('Date')
+plt.ylabel('Prices')
+plt.title('Stock Prices Over Time')
+plt.legend()
+plt.show()
+
+#outlier 
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (df)
+# Make sure the 'Date' column is in datetime format and set as the index
+
+# Extract year from the Date column
+df['Year'] = df['Date'].dt.year
+
+# Create a box plot for the average stock prices by year
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='Year', y='Price', data=df)
+plt.xlabel('Year')
+plt.ylabel('Average Stock Price')
+plt.title('Box Plot of Average Stock Prices by Year')
+plt.show()
+
+#dataset volume 
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming you have already read and preprocessed the data (df)
+# Make sure the 'Date' column is in datetime format and set as the index
+
+# Extract year from the Date column
+df['Year'] = df['Date'].dt.year
+
+# Create a scatter plot with data points colored by year
+plt.figure(figsize=(12, 6))
+sns.scatterplot(x='Vol.', y='Price', hue='Year', data=df)
+plt.xlabel('Volume of Traded Shares')
+plt.ylabel('Stock Price')
+plt.title('Scatter Plot: Volume of Traded Shares vs. Stock Prices (Colored by Year)')
+plt.legend(title='Year')
+plt.show()
+
+
+
